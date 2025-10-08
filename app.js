@@ -1,5 +1,7 @@
 require("dotenv").config();
 const express = require("express");
+const loggerMiddleware = require("./middlewares/logger");
+const errorHandlerMiddleware = require("./middlewares/errorHandler");
 const fsPromises = require("fs").promises;
 const path = require("path");
 const {
@@ -14,6 +16,8 @@ const bodyParser = require("body-parser");
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+app.use(loggerMiddleware);
+app.use(errorHandlerMiddleware);
 
 app.get("/", (req, res) => {
   res.send("Home!");
@@ -122,7 +126,10 @@ app.delete("/users/:id", async (req, res) => {
     return res.status(500).json({ error: "Error reading users data" });
   }
 });
-
+app.get('/error', (req, res, next) => {
+  next(new Error('This is a test error'));
+}
+);
 app.listen(PORT, () => {
   console.log("Environment Variables:", process.env.PORT);
   console.log(`Server is running on http://localhost:${PORT}`);
