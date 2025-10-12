@@ -1,7 +1,7 @@
 const {
   CreateTimeBlockService,
   ListReservationsService,
-} = require("../services/adminService");
+} = require("../services/adminService.js");
 
 const createTimeBlock = async (req, res) => {
   if (req.user.role !== "ADMIN") {

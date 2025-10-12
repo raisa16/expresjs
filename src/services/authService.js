@@ -1,7 +1,7 @@
 
 const bcrypt = require("bcryptjs");
 const jsonwebtoken = require("jsonwebtoken");
-const { PrismaClient } = require("../../generated/prisma/");
+const { PrismaClient } = require("../../generated/prisma");
 const prisma = new PrismaClient();
 
 const loginUser = async (email, password) => {
