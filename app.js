@@ -3,16 +3,18 @@ const express = require("express");
 const { PrismaClient } = require("./generated/prisma");
 const prisma = new PrismaClient();
 
-const loggerMiddleware = require("./middlewares/logger");
-const errorHandlerMiddleware = require("./middlewares/errorHandler");
+const loggerMiddleware = require("./src/middlewares/logger");
+const errorHandlerMiddleware = require("./src/middlewares/errorHandler");
 const fsPromises = require("fs").promises;
 const path = require("path");
 const {
   validateUser,
   validateUserIdAndUserEmailExistence,
 } = require("./validateUser");
+const authenticateToken = require("./src/middlewares/auth");
 const usersFilePath = path.join(__dirname, "users.json");
-
+const bcrypt = require("bcryptjs");
+const jsonwebtoken = require("jsonwebtoken");
 const app = express();
 const PORT = process.env.PORT || 3000;
 const bodyParser = require("body-parser");
@@ -130,10 +132,9 @@ app.delete("/users/:id", async (req, res) => {
   }
 });
 
-app.get('/error', (req, res, next) => {
-  next(new Error('This is a test error'));
-}
-);
+app.get("/error", (req, res, next) => {
+  next(new Error("This is a test error"));
+});
 app.get("/db-users", async (req, res) => {
   try {
     const users = await prisma.user.findMany();
@@ -142,6 +143,45 @@ app.get("/db-users", async (req, res) => {
     res.status(500).json({ error: "Error fetching users from database" });
   }
 });
+
+app.get("/protected-route", authenticateToken, (req, res) => {
+  res.json({ message: "This is a protected route" });
+});
+
+app.post("/register", async (req, res) => {
+  const { email, password, name } = req.body;
+  const hashedPassword = await bcrypt.hash(password, 10);
+
+  const newUser = await prisma.user.create({
+    data: {
+      email,
+      password: hashedPassword,
+      name,
+      role: "USER",
+    },
+  });
+  res.status(201).json({ message: "User registered successfully" });
+});
+
+app.post("/login", async (req, res) => {
+  const { email, password } = req.body;
+  const user = await prisma.user.findUnique({ where: { email } });
+
+  if (!user)
+    return res.status(400).json({ error: "Invalid email or password" });
+
+  const validatePassword = await bcrypt.compare(password, user.password);
+  if (!validatePassword)
+    return res.status(400).json({ error: "Invalid email or password" });
+
+  const token = jsonwebtoken.sign(
+    { id: user.id, role: user.role },
+    process.env.JWT_SECRET,
+    { expiresIn: "1h" }
+  );
+  res.json({ token }); // Return the token to the client
+});
+
 app.listen(PORT, () => {
   console.log("Environment Variables:", process.env.PORT);
   console.log(`Server is running on http://localhost:${PORT}`);
