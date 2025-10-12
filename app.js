@@ -1,5 +1,8 @@
 require("dotenv").config();
 const express = require("express");
+const { PrismaClient } = require("./generated/prisma");
+const prisma = new PrismaClient();
+
 const loggerMiddleware = require("./middlewares/logger");
 const errorHandlerMiddleware = require("./middlewares/errorHandler");
 const fsPromises = require("fs").promises;
@@ -126,10 +129,19 @@ app.delete("/users/:id", async (req, res) => {
     return res.status(500).json({ error: "Error reading users data" });
   }
 });
+
 app.get('/error', (req, res, next) => {
   next(new Error('This is a test error'));
 }
 );
+app.get("/db-users", async (req, res) => {
+  try {
+    const users = await prisma.user.findMany();
+    res.json(users);
+  } catch (error) {
+    res.status(500).json({ error: "Error fetching users from database" });
+  }
+});
 app.listen(PORT, () => {
   console.log("Environment Variables:", process.env.PORT);
   console.log(`Server is running on http://localhost:${PORT}`);
