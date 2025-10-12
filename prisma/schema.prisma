@@ -22,14 +22,23 @@ model User {
   appointments Appointment[]
 } 
 
+model Appointment {
+  id Int @id @default(autoincrement())
+  date DateTime
+  user User @relation(fields: [userId], references: [id])
+  userId Int
+  timeBlock TimeBlock @relation(fields: [timeBlockId], references: [id])
+  timeBlockId Int
+}
+
+model TimeBlock {
+  id          Int           @id @default(autoincrement())
+  startTime   DateTime
+  endTime     DateTime
+  appointments Appointment[]
+}
 
 enum Role {
   USER
   ADMIN
-}
-model Appointment {
-  id        Int      @id @default(autoincrement())
-  date      DateTime
-  userId    Int
-  user      User     @relation(fields: [userId], references: [id])
 }
